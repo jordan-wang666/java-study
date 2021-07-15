@@ -1,5 +1,11 @@
 # 1. Getting started with Spring
 
+>**This chapter covers**
+> 
+>- <small>Spring and Spring Boot essentials
+>- Initializing a Spring project
+>- An overview of the Spring landscape</samll>
+
 ### What is spring?
 At its core, Spring offers a **container**, often referred to as the **Spring application context**, that creates and
 manages application components. These components, or **beans**, are wired together inside the Spring application context
@@ -12,7 +18,7 @@ separate entity (the container) to create and maintain all components and inject
 This is done typically through constructor arguments or property accessor methods.
 
 
-![img.png](../img/img.png)
+![img.png](../img/img1.png)
 
 For example, the following XML declares two beans, an InventoryService bean and a ProductService bean, and wires the
 <kbd>InventoryService</kbd> bean into <kbd>ProductService</kbd> via a constructor argument:
