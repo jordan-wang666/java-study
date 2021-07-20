@@ -77,3 +77,69 @@ public class JdbcIngredientRepository implements IngredientRepository {
 - <kbd>Taco</kbd> — Holds essential information about a taco design
 - <kbd>Ingredient_Ref</kbd> — Contains one or more rows for each row in Taco, mapping the taco to the ingredients for that taco
 - <kbd>Ingredient</kbd> — Holds ingredient information
+
+### Annotating the domain as entities
+
+Entity needs <kbd>@Entity</kbd> and <kbd>@Id</kbd> to make sure is an entity.
+<kbd>@GeneratedValue(strategy = GenerationType.AUTO)</kbd> let id type is auto.
+```java
+ package tacos;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.ManyToMany;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
+import lombok.Data;
+
+@Data
+@Entity
+public class Taco {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
+
+    @NotNull
+    @Size(min=5, message="Name must be at least 5 characters long")
+    private String name;
+
+    private Date createdAt = new Date();
+
+    @Size(min=1, message="You must choose at least 1 ingredient")
+    @ManyToMany()
+    private List<Ingredient> ingredients = new ArrayList<>();
+
+    public void addIngredient(Ingredient ingredient) {
+        this.ingredients.add(ingredient);
+    }
+
+}
+```
+
+### Declaring JPA repositories
+
+So we do not need to write implement codes.When spring start up Spring Data Jpa will So we do not need to write implement codes.
+When spring start up,Spring Data Jpa will generate by auto
+
+```java
+package com.taco.cloud.dao;
+
+import com.taco.cloud.entity.TacoOrder;
+import org.springframework.data.repository.CrudRepository;
+
+public interface OrderRepository extends CrudRepository<TacoOrder, Long> {
+}
+```
+
+### Customizing repositories
+If we need other method except regular CRUD, we just add method like this into your repository.
+```java
+List<TacoOrder> findByDeliveryZip(String deliveryZip);
+```

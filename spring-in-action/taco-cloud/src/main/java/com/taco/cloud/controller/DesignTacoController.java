@@ -4,6 +4,7 @@ import com.taco.cloud.dao.IngredientRepository;
 import com.taco.cloud.entity.Ingredient;
 import com.taco.cloud.entity.Taco;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.IteratorUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -31,8 +32,8 @@ public class DesignTacoController {
 
     @ModelAttribute
     public void addIngredientsToModel(Model model) {
-        List<Ingredient> ingredients = ingredientRepo.findAll();
-
+        Iterable<Ingredient> all = ingredientRepo.findAll();
+        List<Ingredient> ingredients = IteratorUtils.toList(all.iterator());
 
 //        List<Ingredient> ingredients = Arrays.asList(
 //                new Ingredient("FLTO", "Flour Tortilla", Ingredient.Type.WRAP),
