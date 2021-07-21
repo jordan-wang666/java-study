@@ -125,8 +125,26 @@ public class Taco {
 
 ### Declaring JPA repositories
 
-So we do not need to write implement codes.When spring start up Spring Data Jpa will So we do not need to write implement codes.
-When spring start up,Spring Data Jpa will generate by auto
+If you want to use a different JPA implementation, then you’ll need to, at least, exclude the Hibernate dependency and include the JPA library of your choice. For example, to use EclipseLink instead of Hibernate, you’ll need to alter the build as follows:
+```java
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-data-jpa</artifactId>
+  <exclusions>
+    <exclusion>
+        <groupId>org.hibernate</groupId>
+        <artifactId>hibernate-core</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+<dependency>
+  <groupId>org.eclipse.persistence</groupId>
+  <artifactId>org.eclipse.persistence.jpa</artifactId>
+  <version>2.7.6</version>
+</dependency>
+```
+
+When you created the JdbcTemplate-based versions of the repositories, you explicitly declared the methods you wanted the repository to provide. But with Spring Data JDBC you were able to dismiss the explicit implementation classes and instead extend the CrudRepository interface. As it turns out, CrudRepository works equally well for Spring Data JPA. For example, here’s the new IngredientRepository interface:
 
 ```java
 package com.taco.cloud.dao;
@@ -137,9 +155,30 @@ import org.springframework.data.repository.CrudRepository;
 public interface OrderRepository extends CrudRepository<TacoOrder, Long> {
 }
 ```
+In fact, the IngredientRepository interface we’ll use with Spring Data JPA is identical to the one we defined for use with Spring Data JDBC. The CrudRepository interface is commonly used across many of Spring Data’s projects, regardless of the underlying persistence mechanism.
 
 ### Customizing repositories
 If we need other method except regular CRUD, we just add method like this into your repository.
 ```java
 List<TacoOrder> findByDeliveryZip(String deliveryZip);
 ```
+
+- <kbd>IsAfter</kbd>, <kbd>After</kbd>, <kbd>IsGreaterThan</kbd>, <kbd>GreaterThan</kbd>
+- <kbd>IsGreaterThanEqual</kbd>, <kbd>GreaterThanEqual</kbd>
+- <kbd>IsBefore</kbd>, <kbd>Before</kbd>, <kbd>IsLessThan</kbd>, <kbd>LessThan</kbd>
+- <kbd>IsLessThanEqual</kbd>, <kbd>LessThanEqual</kbd>
+- <kbd>IsBetween</kbd>, <kbd>Between</kbd>
+- <kbd>IsNull</kbd>, <kbd>Null</kbd>
+- <kbd>IsNotNull</kbd>, <kbd>NotNull</kbd>
+- <kbd>IsIn</kbd>, <kbd>In</kbd>
+- <kbd>IsNotIn</kbd>, <kbd>NotIn</kbd>
+- <kbd>IsStartingWith</kbd>, <kbd>StartingWith</kbd>, <kbd>StartsWith</kbd>
+- <kbd>IsEndingWith</kbd>, <kbd>EndingWith</kbd>, <kbd>EndsWith</kbd>
+- <kbd>IsContaining</kbd>, <kbd>Containing</kbd>, <kbd>Contains</kbd>
+- <kbd>IsLike</kbd>, <kbd>Like</kbd>
+- <kbd>IsNotLike</kbd>, <kbd>NotLike</kbd>
+- <kbd>IsTrue</kbd>, <kbd>True</kbd>
+- <kbd>IsFalse</kbd>, <kbd>False</kbd>
+- <kbd>Is</kbd>, <kbd>Equals</kbd>
+- <kbd>IsNot</kbd>, <kbd>Not</kbd>
+- <kbd>IgnoringCase</kbd>, <kbd>IgnoresCase</kbd>
