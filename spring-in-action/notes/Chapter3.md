@@ -184,6 +184,19 @@ List<TacoOrder> findByDeliveryZip(String deliveryZip);
 - <kbd>IsNot</kbd>, <kbd>Not</kbd>
 - <kbd>IgnoringCase</kbd>, <kbd>IgnoresCase</kbd>
 
+e.g:
+```java
+List<TacoOrder> findByDeliveryToAndDeliveryCityAllIgnoresCase(
+        String deliveryTo, String deliveryCity);
+```
+```java
+List<TacoOrder> findByDeliveryCityOrderByDeliveryTo(String city);
+```
+```java
+@Query("Order o where o.deliveryCity='Seattle'")
+List<TacoOrder> readOrdersDeliveredInSeattle();
+``` 
+
 ### properties
 
 If we did not set JPA properties it will throw an exception. 
