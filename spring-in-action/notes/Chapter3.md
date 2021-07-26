@@ -158,6 +158,7 @@ public interface OrderRepository extends CrudRepository<TacoOrder, Long> {
 In fact, the IngredientRepository interface we’ll use with Spring Data JPA is identical to the one we defined for use with Spring Data JDBC. The CrudRepository interface is commonly used across many of Spring Data’s projects, regardless of the underlying persistence mechanism.
 
 ### Customizing repositories
+![img.png](../img/img4.png)
 If we need other method except regular CRUD, we just add method like this into your repository.
 ```java
 List<TacoOrder> findByDeliveryZip(String deliveryZip);
@@ -182,3 +183,25 @@ List<TacoOrder> findByDeliveryZip(String deliveryZip);
 - <kbd>Is</kbd>, <kbd>Equals</kbd>
 - <kbd>IsNot</kbd>, <kbd>Not</kbd>
 - <kbd>IgnoringCase</kbd>, <kbd>IgnoresCase</kbd>
+
+### properties
+
+If we did not set JPA properties it will throw an exception. 
+
+```yaml
+spring:
+  jpa:
+    database: mysql
+  datasource:
+    generate-unique-name: false
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/taco_cloud?serverTimezone=Asia/Shanghai&allowMultiQueries=true&useUnicode=true&characterEncoding=UTF-8&useSSL=false
+    username: root
+    password: 123456
+
+```
+
+### Summary
+- Spring’s <kbd>JdbcTemplate</kbd> greatly simplifies working with JDBC.
+- <kbd>PreparedStatementCreator</kbd> and <kbd>KeyHolder</kbd> can be used together when you need to know the value of a database-generated ID.
+- Spring Data JPA makes JPA persistence as easy as writing a repository interface.
