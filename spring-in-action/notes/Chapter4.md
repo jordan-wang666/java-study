@@ -629,7 +629,7 @@ protected void configure(HttpSecurity http)throws Exception{
         http
         .authorizeRequests()
         .antMatchers("/design","/orders")
-        .access("hasRole('USER') && "+
+        .access("hasRole('ROLE_USER') && "+
         "T(java.util.Calendar).getInstance().get("+
         "T(java.util.Calendar).DAY_OF_WEEK) == "+
         "T(java.util.Calendar).TUESDAY")
