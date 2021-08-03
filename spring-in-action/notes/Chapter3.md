@@ -126,7 +126,7 @@ public class Taco {
 ### Declaring JPA repositories
 
 If you want to use a different JPA implementation, then you’ll need to, at least, exclude the Hibernate dependency and include the JPA library of your choice. For example, to use EclipseLink instead of Hibernate, you’ll need to alter the build as follows:
-```java
+```xml
 <dependency>
   <groupId>org.springframework.boot</groupId>
   <artifactId>spring-boot-starter-data-jpa</artifactId>
