@@ -30,7 +30,8 @@ properties so that beans needing those properties can consume them from Spring i
 several property sources, including
 
 - JVM system properties
-- Operating system environment variables  Command-line arguments
+- Operating system environment variables 
+- Command-line arguments
 - Application property configuration files
 
 It then aggregates those properties into a single source from which Spring beans can be injected.
