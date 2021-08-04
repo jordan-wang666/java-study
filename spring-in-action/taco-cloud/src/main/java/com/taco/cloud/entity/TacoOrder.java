@@ -1,5 +1,6 @@
 package com.taco.cloud.entity;
 
+import com.taco.cloud.entity.security.User;
 import lombok.Data;
 import org.hibernate.validator.constraints.CreditCardNumber;
 
@@ -51,6 +52,9 @@ public class TacoOrder implements Serializable {
 
     @OneToMany(cascade = CascadeType.ALL)
     private List<Taco> tacos = new ArrayList<>();
+
+    @ManyToOne
+    private User user;
 
     public void addTaco(Taco taco) {
         this.tacos.add(taco);

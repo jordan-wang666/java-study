@@ -301,7 +301,7 @@ authenticated users Denies access unconditionally Allows access if the user is f
 Allows access if the user has any of the given authorities Allows access if the user has any of the given roles Allows
 access if the user has the given authority Allows access if the request comes from the given IP address
 
-| Method | 表# 4. Securing Spring
+### 4. Securing Spring
 
 > **This chapter covers**
 > - Autoconfiguring Spring Security
@@ -640,25 +640,119 @@ protected void configure(HttpSecurity http)throws Exception{
 
 ```java
  @Override
-    protected void configure(HttpSecurity http) throws Exception {
+protected void configure(HttpSecurity http)throws Exception{
         http
-                .authorizeRequests()
-                .antMatchers("/design", "/orders")
-                .hasRole("USER")
-                .antMatchers("/", "/**").permitAll()
+        .authorizeRequests()
+        .antMatchers("/design","/orders")
+        .hasRole("USER")
+        .antMatchers("/","/**").permitAll()
 
-                .and()
-                .formLogin()
-                .loginPage("/login")
-                .defaultSuccessUrl("/design");
-    }
+        .and()
+        .formLogin()
+        .loginPage("/login")
+        .defaultSuccessUrl("/design");
+        }
 ```
 
+### Logging out
+
+```
+    .and()
+          .logout()
+            .logoutSuccessUrl("/")
+```
+
+```html
+
+<form method="POST" th:action="@{/logout}">
+    <input type="submit" value="Logout"/>
+</form>
+```
+
+### Preventing cross-site request forgery
+
+Cross-site request forgery (CSRF) is a common security attack.
+
+It’s possible to disable CSRF support, but I’m hesitant to show you how. CSRF protec- tion is important and easily
+handled in forms, so there’s little reason to disable it. But if you insist on disabling it, you can do so by calling
+disable() like this:
+
+```
+    .and()
+        .csrf()
+        .disable()
+```
+
+Again, I caution you not to disable CSRF protection, especially for production applications.
+
+### Knowing your user
+
+There are several ways to determine who the user is. These are a few of the most common ways:
+
+- Inject a Principal object into the controller method
+- Inject an Authentication object into the controller method
+- Use SecurityContextHolder to get at the security context
+- Use an @AuthenticationPrincipal annotated method
+
+```java
+@PostMapping
+public String processOrder(@Valid Order order,Errors errors,
+        SessionStatus sessionStatus,
+        Principal principal){
+        ...
+        User user=userRepository.findByUsername(
+        principal.getName());
+        order.setUser(user);
+        ...
+        }
 
 
+@PostMapping
+public String processOrder(@Valid Order order,Errors errors,
+        SessionStatus sessionStatus,
+        Authentication authentication){
+        ...
+        User user=(User)authentication.getPrincipal();
+        order.setUser(user);
+        ...
+        }
 
+@PostMapping
+public String processOrder(@Valid Order order,Errors errors,
+        SessionStatus sessionStatus,
+@AuthenticationPrincipal User user){
+        if(errors.hasErrors()){
+        return"orderForm";
+        }
+        order.setUser(user);
+        orderRepo.save(order);
+        sessionStatus.setComplete();
+        return"redirect:/";
+        }
+```
 
+There’s one other way of identifying who the authenticated user is, although it’s a bit messy in the sense that it’s
+very heavy with security-specific code. You can obtain an `Authentication` object from the security context and then
+request its principal like this:
 
+```
+Authentication authentication =
+SecurityContextHolder.getContext().getAuthentication();
+User user = (User) authentication.getPrincipal();
+```
+
+Although this snippet is thick with security-specific code, it has one advantage over the other approaches described:
+**it can be used anywhere in the application, not only in a controller’s handler methods**. This makes it suitable for
+use in lower levels of the code.
+
+### Summary
+
+- Spring Security autoconfiguration is a great way to get started with security, but most applications will need to
+  explicitly configure security to meet their unique security requirements.
+- User details can be managed in user stores backed by relational databases, LDAP, or completely custom implementations.
+- Spring Security automatically protects against CSRF attacks.
+- Information about the authenticated user can be obtained via the Security- Context object (returned from
+  SecurityContextHolder.getContext()) or injected into controllers using @AuthenticationPrincipal.
 
 
 
