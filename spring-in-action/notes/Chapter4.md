@@ -286,21 +286,7 @@ protected void configure(HttpSecurity http)throws Exception{
         }
 ```
 
-Configuration methods to define how a path is to be secured | Method | |  
-| ---- | ---- | access(String)
-anonymous()
-authenticated()
-denyAll()
-fullyAuthenticated()
-hasAnyAuthority(String...)
-hasAnyRole(String...)
-hasAuthority(String)
-hasIpAddress(String)
-Allows access if the given SpEL expression evaluates to true Allows access to anonymous users Allows access to
-authenticated users Denies access unconditionally Allows access if the user is fully authenticated (not remembered)
-Allows access if the user has any of the given authorities Allows access if the user has any of the given roles Allows
-access if the user has the given authority Allows access if the request comes from the given IP address
-
+Configuration methods to define how a path is to be secured
 ### 4. Securing Spring
 
 > **This chapter covers**
