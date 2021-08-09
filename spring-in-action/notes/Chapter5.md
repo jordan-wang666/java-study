@@ -1,4 +1,4 @@
-# 4. Working with configuration properties
+# 5. Working with configuration properties
 
 > **This chapter covers**
 > - Fine-tuning autoconfigured beans
@@ -30,7 +30,7 @@ properties so that beans needing those properties can consume them from Spring i
 several property sources, including
 
 - JVM system properties
-- Operating system environment variables 
+- Operating system environment variables
 - Command-line arguments
 - Application property configuration files
 
@@ -158,3 +158,146 @@ greeting:
 greeting:
   welcome: You are using ${spring.application.name}.
 ```
+
+The new pageSize property defaults to 20. But you can easily change it to any value you want by setting a
+taco.orders.pageSize property. For example, you could set this property in application.yml like this:
+
+```yaml
+taco:
+  orders:
+    pageSize: 10
+```
+
+Or, if you need to make a quick change while in production, you can do so without having to rebuild and redeploy the
+application by setting the taco.orders.pageSize property as an environment variable:
+
+```
+$ export TACO_ORDERS_PAGESIZE=10
+```
+
+### Defining configuration properties holders
+
+```java
+package tacos.web;
+
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+
+import org.springframework.boot.context.properties.
+        ConfigurationProperties;
+import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
+import lombok.Data;
+
+@Component
+@ConfigurationProperties(prefix = "taco.orders")
+@Data
+@Validated
+public class OrderProps {
+    @Min(value = 5, message = "must be between 5 and 25")
+    @Max(value = 25, message = "must be between 5 and 25")
+    private int pageSize = 20;
+}
+//end::validated[]
+```
+
+### Declaring configuration property metadata
+
+To create metadata for your custom configuration properties, you’ll need to create a file under the META-INF (for
+example, in the project under src/main/resources/ META-INF) named additional-spring-configuration-metadata.json.
+
+For the taco.orders.pageSize property, you can set up the metadata with the following JSON:
+
+```json
+{
+  "properties": [
+    {
+      "name": "taco.orders.page-size",
+      "type": "java.lang.String",
+      "description": "Sets the maximum number of orders to display in a list."
+    }
+  ]
+}
+```
+
+### Activating profiles
+
+For example, you could set it in application.yml like this:
+
+```yaml
+spring:
+  profiles:
+    active:
+      - prod
+```
+
+On the production environment, you would set `SPRING_PROFILES_ACTIVE` like this:
+
+```
+% export SPRING_PROFILES_ACTIVE=prod
+```
+
+If you’re running the application as an executable JAR file, you might also set the active profile with a command-line
+argument like this:
+
+```
+% java -jar taco-cloud.jar --spring.profiles.active=prod
+```
+
+Often, this is with a comma-separated list as when setting it with an environment variable:
+
+```
+% export SPRING_PROFILES_ACTIVE=prod,audit,ha
+```
+
+But in YAML, you’d specify it as a list like this:
+
+```yaml
+  spring:
+    profiles:
+      active:
+        - prod
+        - audit
+        - ha
+```
+
+### Conditionally creating beans with profiles
+
+Or suppose that you need the CommandLineRunner created if either the dev profile or qa profile is active. In that case,
+you can list the profiles for which the bean should be created:
+
+```java
+@Bean
+@Profile({"dev", "qa"})
+public CommandLineRunner dataLoader(IngredientRepository repo,
+        UserRepository userRepo,PasswordEncoder encoder){
+        ...
+        }
+@Bean
+@Profile("!prod")
+public CommandLineRunner dataLoader(IngredientRepository repo,
+        UserRepository userRepo,PasswordEncoder encoder){
+        ...
+        }
+
+@Profile({"!prod", "!qa"})
+@Configuration
+public class DevelopmentConfig {
+    @Bean
+    public CommandLineRunner dataLoader(IngredientRepository repo,
+                                        UserRepository userRepo, PasswordEncoder encoder) {
+    ...
+    }
+}
+```
+
+### Summary
+
+- Spring beans can be annotated with @ConfigurationProperties to enable injection of values from one of several property
+  sources.
+- Configuration properties can be set in command-line arguments, environment variables, JVM system properties,
+  properties files, or YAML files, among other options.
+- Configuration properties can be used to override autoconfiguration settings, including the ability to specify a
+  data-source URL and logging levels.
+- Spring profiles can be used with property sources to conditionally set configuration properties based on the active
+  profile(s).
