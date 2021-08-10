@@ -11,3 +11,7 @@
 [4. Securing Spring](notes/Chapter4.md)
 
 [5. Working with configuration properties](notes/Chapter5.md)
+
+### Part2 Integrated Spring
+
+[6.Creating REST services](notes/Chapter6.md)
