@@ -1,4 +1,7 @@
 spring:
+  data:
+    rest:
+      base-path: /api
   jpa:
     database: mysql
     show-sql: true
