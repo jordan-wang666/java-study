@@ -15,3 +15,5 @@
 ### Part2 Integrated Spring
 
 [6.Creating REST services](notes/Chapter6.md)
+
+[7.Consuming REST services](notes/Chapter7.md)
