@@ -143,3 +143,7 @@ class Post {
 }
 ```
 
+### Summary
+
+- Clients can use RestTemplate to make HTTP requests against REST APIs.
+- Traverson enables clients to navigate an API using hyperlinks embedded in the responses.

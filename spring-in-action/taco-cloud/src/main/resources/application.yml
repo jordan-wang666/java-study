@@ -18,3 +18,7 @@ spring:
 #      ldif: classpath:users.ldif
 #      base-dn: ou=groups,dc=tacocloud,dc=com
 #      port: 33389
+#  activemq:
+#    broker-url: tcp://localhost:
+#    user: tacoweb
+#    password: l3tm31n
