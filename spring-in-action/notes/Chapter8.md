@@ -80,3 +80,139 @@ the installation instructions here, I refer you to the broker documentation for 
 - Artemis—https://activemq.apache.org/artemis/docs/latest/using-server.html
 - ActiveMQ—http://activemq.apache.org/getting-started.html#GettingStarted-Pre-
   InstallationRequirements
+
+### Sending messages with JmsTemplate
+
+JmsTemplate has several methods that are useful for sending messages, including the following:
+
+```java
+interface JmsTemplate {
+    // Send raw messages
+    void send(MessageCreator messageCreator) throws JmsException;
+
+    void send(Destination destination, MessageCreator messageCreator)
+            throws JmsException;
+
+    void send(String destinationName, MessageCreator messageCreator)
+            throws JmsException;
+
+    // Send messages converted from objects
+    void convertAndSend(Object message) throws JmsException;
+
+    void convertAndSend(Destination destination, Object message)
+            throws JmsException;
+
+    void convertAndSend(String destinationName, Object message)
+            throws JmsException;
+
+    // Send messages converted from objects with post-processing
+    void convertAndSend(Object message,
+                        MessagePostProcessor postProcessor) throws JmsException;
+
+    void convertAndSend(Destination destination, Object message,
+                        MessagePostProcessor postProcessor) throws JmsException;
+
+    void convertAndSend(String destinationName, Object message,
+                        MessagePostProcessor postProcessor) throws JmsException;
+}
+```
+
+- Three send() methods require a MessageCreator to manufacture a Message object.
+- Three convertAndSend() methods accept an Object and automatically convert that Object into a Message behind the
+  scenes.
+- Three convertAndSend() methods automatically convert an Object to a Message, but also accept a MessagePostProcessor to
+  allow for customization of the Message before it’s sent.
+
+- One method accepts no destination parameter and sends the message to a default destination.
+- One method accepts a Destination object that specifies the destination for the message.
+- One method accepts a String that specifies the destination for the message by name.
+
+```java
+
+@Service
+public class JmsOrderMessagingServiceImpl implements JmsOrderMessagingService {
+
+    @Resource
+    private JmsTemplate jmsTemplate;
+
+    @Override
+    public void SendMessage(TacoOrder order) {
+        jmsTemplate.send(session -> session.createObjectMessage(order));
+    }
+}
+```
+
+But notice that the call to `jms.send()` doesn’t specify a destination. In order for this to work, you must also specify
+a default destination name with the `spring.jms.template.default-destination` property. For example, you could set the
+property in your application.yml file like this:
+
+```yaml
+spring:
+  jms:
+    template:
+      default-destination: tacocloud.order.queue
+```
+
+One way of doing that is by passing a Destination object as the first parameter to send(). The easiest way to do this is
+to declare a Destination bean and then inject it into the bean that performs messaging. For example, the following bean
+declares the Taco Cloud order queue Destination:
+
+```java
+class Config {
+    @Bean
+    public Destination orderQueue() {
+        return new ActiveMQQueue("tacocloud.order.queue");
+    }
+}
+```
+
+If this Destination bean is injected into JmsOrderMessagingService, you can use it to specify the destination when
+calling send():
+
+```java
+class Service {
+    @Autowired
+    public JmsOrderMessagingService(JmsTemplate jms,
+                                    Destination orderQueue) {
+        this.jms = jms;
+        this.orderQueue = orderQueue;
+    }
+
+    @Override
+    public void sendOrder(Order order) {
+        jms.send(
+                orderQueue,
+                session -> session.createObjectMessage(order));
+    }
+}
+```
+
+But in practice, you’ll almost never specify anything more than the destination name. It’s often easier to just send the
+name as the first parameter to send():
+
+```java
+class service {
+    @Override
+    public void sendOrder(Order order) {
+        jms.send(
+                "tacocloud.order.queue",
+                session -> session.createObjectMessage(order));
+    }
+}
+```
+
+#### CONVERTING MESSAGES BEFORE SENDING
+
+`JmsTemplates’s convertAndSend()` method simplifies message publication by eliminating the need to provide a
+`MessageCreator`. Instead, you pass the object that’s to be sent directly to `convertAndSend()`, and the object will be
+converted into a Message before being sent. For example, the following reimplementation of `sendOrder()` uses
+`convertAndSend()` to send an Order to a named destination:
+
+```java
+class Service {
+    @Override
+    public void sendOrder(Order order) {
+        jms.convertAndSend("tacocloud.order.queue", order);
+    }
+}
+```

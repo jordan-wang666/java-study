@@ -1,7 +1,10 @@
 package com.taco.cloud.entity;
 
 import com.taco.cloud.entity.security.User;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.CreditCardNumber;
 
 import javax.persistence.*;
@@ -15,6 +18,9 @@ import java.util.List;
 
 @Data
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TacoOrder implements Serializable {
 
     private static final long serialVersionUID = 1L;
