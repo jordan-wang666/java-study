@@ -1,4 +1,4 @@
-# Consuming REST services
+# 7.Consuming REST services
 
 > **This chapter covers**
 > - Using RestTemplate to consume REST APIs

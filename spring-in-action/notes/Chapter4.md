@@ -299,7 +299,6 @@ Configuration methods to define how a path is to be secured
 ### Enabling Spring Data Cassandra
 
 ```xml
-
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-data-cassandra</artifactId>
