@@ -18,6 +18,9 @@ spring:
     port: 5672
     username: admin
     password: admin
+#    template:
+#      exchange: tacocloud.orders
+#      routing-key: kitchens.central
   #  ldap:
   #    embedded:
   #      ldif: classpath:users.ldif

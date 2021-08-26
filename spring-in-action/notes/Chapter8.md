@@ -528,4 +528,245 @@ interface RabbitTemplate {
 }
 ```
 
+```java
+package tacos.messaging;
 
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import tacos.Order;
+
+@Service
+public class RabbitOrderMessagingService
+        implements OrderMessagingService {
+    private RabbitTemplate rabbit;
+
+    @Autowired
+    public RabbitOrderMessagingService(RabbitTemplate rabbit) {
+        this.rabbit = rabbit;
+    }
+
+    public void sendOrder(Order order) {
+        MessageConverter converter = rabbit.getMessageConverter();
+        MessageProperties props = new MessageProperties();
+        Message message = converter.toMessage(order, props);
+        rabbit.send("tacocloud.order", message);
+    }
+}
+```
+
+You can override these defaults by setting the `spring.rabbitmq.template.exchange`
+and `spring.rabbitmq.template .routing-key` properties:
+
+```yaml
+ spring:
+   rabbitmq:
+     template:
+       exchange: tacocloud.orders
+       routing-key: kitchens.central
+```
+
+#### CONFIGURING A MESSAGE CONVERTER
+
+By default, message conversion is performed with `SimpleMessageConverter`, which is able to convert simple types (like
+String) and Serializable objects to Message objects. But Spring offers several message converters for RabbitTemplate,
+including the following:
+
+- Jackson2JsonMessageConverter—Converts objects to and from JSON using the Jackson 2 JSON processor
+- MarshallingMessageConverter—Converts using a Spring Marshaller and Unmarshaller
+- SerializerMessageConverter—Converts String and native objects of any kind using Spring’s Serializer and Deserializer
+  abstractions
+- SimpleMessageConverter—Converts String, byte arrays, and Serializable types
+- ContentTypeDelegatingMessageConverter—Delegates to another `MessageConverter` based on the contentType header
+- MessagingMessageConverter—Delegates to an underlying MessageConverter for the message conversion and to an
+  AmqpHeaderConverter for the headers
+
+you can configure a Jackson2JsonMessageConverter like this:
+
+```java
+class Config {
+    @Bean
+    public MessageConverter messageConverter() {
+        return new Jackson2JsonMessageConverter();
+    }
+}
+```
+
+Spring Boot autoconfiguration will discover this bean and inject it into `RabbitTemplate` in place of the default
+message converter.
+
+#### SETTING MESSAGE PROPERTIE
+
+As with JMS, you may need to set some headers in the messages you send. For example, let’s say you need to send an
+`X_ORDER_SOURCE` for all orders submitted through the Taco Cloud website. When creating your own Message objects, you
+can set the header through the `MessageProperties` instance you give to the message converter. Revisiting
+the `sendOrder()`
+method from listing 8.5, you only need one additional line of code to set the header:
+
+```java
+class Service {
+    public void sendOrder(Order order) {
+        MessageConverter converter = rabbit.getMessageConverter();
+        MessageProperties props = new MessageProperties();
+        props.setHeader("X_ORDER_SOURCE", "WEB");
+        Message message = converter.toMessage(order, props);
+        rabbit.send("tacocloud.order", message);
+    }
+}
+```
+
+When using `convertAndSend()`, however, you don’t have quick access to the `MessageProperties` object.
+A `MessagePostProcessor` can help you with that, though:
+
+```java
+class Service {
+    @Override
+    public void sendOrder(Order order) {
+        rabbit.convertAndSend("tacocloud.order.queue", order,
+                new MessagePostProcessor() {
+                    @Override
+                    public Message postProcessMessage(Message message)
+                            throws AmqpException {
+                        MessageProperties props = message.getMessageProperties();
+                        props.setHeader("X_ORDER_SOURCE", "WEB");
+                        return message;
+                    }
+                });
+    }
+}
+```
+
+### Receiving message from RabbitMQ
+
+You’ve seen that sending messages with `RabbitTemplate` doesn’t differ much from sending messages with `JmsTemplate`.
+And as it turns out, receiving messages from a `RabbitMQ` queue isn’t very different than from JMS. As with JMS, you
+have two choices:
+
+- Pulling messages from a queue with RabbitTemplate
+- Having messages pushed to a @RabbitListener-annotated method
+
+#### RECEIVING MESSAGES WITH RABBITTEMPLATE
+
+```java
+class Receive {
+    // Receive messages
+    Message receive() throws AmqpException;
+
+    Message receive(String queueName) throws AmqpException;
+
+    Message receive(long timeoutMillis) throws AmqpException;
+
+    Message receive(String queueName, long timeoutMillis) throws AmqpException;
+
+    // Receive objects converted from messages
+    Object receiveAndConvert() throws AmqpException;
+
+    Object receiveAndConvert(String queueName) throws AmqpException;
+
+    Object receiveAndConvert(long timeoutMillis) throws AmqpException;
+
+    Object receiveAndConvert(String queueName, long timeoutMillis) throws
+            AmqpException;
+
+    // Receive type-safe objects converted from messages
+    <T> T receiveAndConvert(ParameterizedTypeReference<T> type) throws
+            AmqpException;
+
+    <T> T receiveAndConvert(String queueName, ParameterizedTypeReference<T> type)
+            throws AmqpException;
+
+    <T> T receiveAndConvert(long timeoutMillis, ParameterizedTypeReference<T>
+            type) throws AmqpException;
+
+    <T> T receiveAndConvert(String queueName, long timeoutMillis,
+                            ParameterizedTypeReference<T> type)
+            throws AmqpException;
+}
+```
+
+```java
+package tacos.kitchen.messaging.rabbit;
+
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
+public class RabbitOrderReceiver {
+    private RabbitTemplate rabbit;
+    private MessageConverter converter;
+
+    @Autowired
+    public RabbitOrderReceiver(RabbitTemplate rabbit) {
+        this.rabbit = rabbit;
+        this.converter = rabbit.getMessageConverter();
+    }
+
+    public Order receiveOrder() {
+        Message message = rabbit.receive("tacocloud.orders");
+        return message != null
+    }
+}
+```
+
+Depending on the use case, you may be able to tolerate a small delay. In the Taco Cloud kitchen’s overhead display, for
+example, you can possibly wait a while if no orders are available. Let’s say you decide to wait up to 30 seconds before
+giving up. Then the receiveOrder() method can be changed to pass a 30,000 millisecond delay to receive():
+
+```java
+class Receive {
+    public Order receiveOrder() {
+        Message message = rabbit.receive("tacocloud.order.queue", 30000);
+        return message != null
+                ? (Order) converter.fromMessage(message)
+                : null;
+    }
+}
+```
+
+simply remove the timeout value in the call to receive() and set it in your configuration with the
+`spring.rabbitmq.template.receive-timeout` property:
+
+```yaml
+spring:
+  rabbitmq:
+    template:
+      receive-timeout: 30000
+```
+
+#### HANDLING RABBITMQ MESSAGES WITH LISTENERS
+
+For message-driven `RabbitMQ` beans, Spring offers RabbitListener, the `RabbitMQ` counterpart to `JmsListener`. To
+specify that a method should be invoked when a message arrives in a `RabbitMQ` queue, annotate a bean’s method with
+`@RabbitTemplate`.
+
+For example, the following listing shows a `RabbitMQ` implementation of `OrderReceiver` that’s annotated to listen for
+order messages rather than to poll for them with `RabbitTemplate`.
+
+```java
+package tacos.kitchen.messaging.rabbit.listener;
+
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
+public class OrderListener {
+    private KitchenUI ui;
+
+    @Autowired
+    public OrderListener(KitchenUI ui) {
+        this.ui = ui;
+    }
+
+    @RabbitListener(queues = "tacocloud.order.queue")
+    public void receiveOrder(Order order) {
+        ui.displayOrder(order);
+    }
+}
+```
