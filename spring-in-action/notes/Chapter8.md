@@ -770,3 +770,150 @@ public class OrderListener {
     }
 }
 ```
+
+### Messaging with Kafka
+
+Kafka is designed to run in a cluster, affording great scalability. And by partitioning its topics across all instances
+in the cluster, it’s very resilient. Whereas RabbitMQ deals primarily with queues in exchanges, Kafka utilizes topics
+only to offer pub/sub messaging.
+
+Kafka topics are replicated across all brokers in the cluster. Each node in the cluster acts as a leader for one or more
+topics, being responsible for that topic’s data and replicating it to the other nodes in the cluster.
+
+Going a step further, each topic can be split into multiple partitions. In that case, each node in the cluster is the
+leader for one or more partitions of a topic, but not for the entire topic. Responsibility for the topic is split across
+all nodes. Figure 8.2 illustrates how this works.
+
+![img.png](../img/img7.png)
+
+### Setting up Spring for Kafka messaging
+
+```xml
+
+<dependency>
+    <groupId>org.springframework.kafka</groupId>
+    <artifactId>spring-kafka</artifactId>
+</dependency>
+```
+
+```yaml
+spring:
+  kafka:
+    bootstrap-servers:
+      - kafka.tacocloud.com:9092
+```
+
+```yaml
+spring:
+  kafka:
+    bootstrap-servers:
+      - kafka.tacocloud.com:9092
+      - kafka.tacocloud.com:9093
+      - kafka.tacocloud.com:9094
+```
+
+### Sending messages with KafkaTemplate
+
+```java
+class Kafka {
+    ListenableFuture<SendResult<K, V>> send(String topic, V data);
+
+    ListenableFuture<SendResult<K, V>> send(String topic, K key, V data);
+
+    ListenableFuture<SendResult<K, V>> send(String topic,
+                                            Integer partition, K key, V data);
+
+    ListenableFuture<SendResult<K, V>> send(String topic,
+                                            Integer partition, Long timestamp, K key, V data);
+
+    ListenableFuture<SendResult<K, V>> send(ProducerRecord<K, V> record);
+
+    ListenableFuture<SendResult<K, V>> send(Message<?> message);
+
+    ListenableFuture<SendResult<K, V>> sendDefault(V data);
+
+    ListenableFuture<SendResult<K, V>> sendDefault(K key, V data);
+
+    ListenableFuture<SendResult<K, V>> sendDefault(Integer partition,
+                                                   K key, V data);
+
+    ListenableFuture<SendResult<K, V>> sendDefault(Integer partition,
+                                                   Long timestamp, K key, V data);
+}
+```
+
+The first thing you may have noticed is that there are no convertAndSend() methods. That’s because KafkaTemplate is
+typed with generics and is able to deal with domain types directly when sending messages. In a way, all of the send()
+methods are doing the job of `convertAndSend()`.
+
+You may also have noticed that there are several parameters to `send()` and `sendDefault()` that are quite different
+from what you used with JMS and Rabbit. When sending messages in Kafka, you can specify the following parameters to
+guide how the message is sent:
+
+- The topic to send the message to (required for send())
+- A partition to write the topic to (optional)
+- A key to send on the record (optional)
+- A timestamp (optional; defaults to System.currentTimeMillis())
+- The payload (required)
+
+The topic and payload are the two most important parameters. Partitions and keys have little effect on how you use
+KafkaTemplate, aside from being extra information provided as parameters to `send()` and `sendDefault()`. For our
+purposes, we’re going to focus on sending the message payload to a given topic and not worry ourselves with partitions
+and keys.
+
+```yaml
+spring:
+  kafka:
+    template:
+      default-topic: tacocloud.orders.topic
+```
+
+###       
+
+The handle() method is annotated with `@KafkaListener` to indicate that it should be invoked when a message arrives in
+the topic named tacocloud.orders.topic. As it’s written in listing 8.9, only an Order (the payload) is given to handle()
+. But if you need additional metadata from the message, it can also accept a `ConsumerRecord` or `Message` object.
+
+For example, the following implementation of `handle()` accepts a `ConsumerRecord` so that you can log the partition and
+timestamp of the message:
+
+```java
+class Listener {
+    @KafkaListener(topics = "tacocloud.orders.topic")
+    public void handle(Order order, ConsumerRecord<Order> record) {
+        log.info("Received from partition {} with timestamp {}",
+                record.partition(), record.timestamp());
+        ui.displayOrder(order);
+    }
+}
+```
+
+Similarly, you could ask for a `Message` instead of a `ConsumerRecord` and achieve the same thing:
+
+```java
+class Listener {
+    @KafkaListener(topics = "tacocloud.orders.topic")
+    public void handle(Order order, Message<Order> message) {
+        MessageHeaders headers = message.getHeaders();
+        log.info("Received from partition {} with timestamp {}",
+                headers.get(KafkaHeaders.RECEIVED_PARTITION_ID)
+                headers.get(KafkaHeaders.RECEIVED_TIMESTAMP));
+        ui.displayOrder(order);
+    }
+}
+```
+
+It’s worth noting that the message payload is also available via `ConsumerRecord.value()` or `Message.getPayload()`.
+This means that you could ask for the `Order` through those objects instead of asking for it directly as a parameter to
+`handle()`.
+
+## Summary
+
+- Asynchronous messaging provides a layer of indirection between communicat- ing applications, which allows for looser
+  coupling and greater scalability.
+- Spring supports asynchronous messaging with JMS, RabbitMQ, or Apache Kafka.
+- Applications can use template-based clients (`JmsTemplate`, `RabbitTemplate`, or `KafkaTemplate`) to send messages via a
+  message broker.
+- Receiving applications can consume messages in a pull-based model using the same template-based clients.
+- Messages can also be pushed to consumers by applying message listener annotations (`@JmsListener`, `@RabbitListener`, or
+  `@KafkaListener`) to bean methods.

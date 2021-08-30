@@ -17,3 +17,5 @@
 [6.Creating REST services](notes/Chapter6.md)
 
 [7.Consuming REST services](notes/Chapter7.md)
+
+[8.Sending messages asynchronously](notes/Chapter8.md)
