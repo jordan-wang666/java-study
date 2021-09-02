@@ -19,3 +19,5 @@
 [7.Consuming REST services](notes/Chapter7.md)
 
 [8.Sending messages asynchronously](notes/Chapter8.md)
+
+[9.Integrating Spring](notes/Chapter9.md)
