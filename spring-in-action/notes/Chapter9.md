@@ -260,3 +260,134 @@ activator, the `@ServiceActivator` annotation might look like this:
 ```
 
 In this example, the service activator polls from the channel named orderChannel every 1 second (or 1,000 ms).
+
+### Filters
+
+Filters can be placed in the midst of an integration pipeline to allow or disallow messages from proceeding to the next
+step in the flow (figure 9.3).
+
+Filters based on some criteria allow or disallow messages from proceeding in the pipeline.
+![img.png](../img/img10.png)
+
+For example, suppose that messages containing integer values are published through a channel named numberChannel, but
+you only want even numbers to pass on to the channel named evenNumberChannel. In that case, you could declare a filter
+with the `@Filter` annotation like this:
+
+```java
+class Config {
+    @Filter(inputChannel = "numberChannel",
+            outputChannel = "evenNumberChannel")
+    public boolean evenNumberFilter(Integer number) {
+        return number % 2 == 0;
+    }
+}
+```
+
+### Transformers
+
+Transformers morph messages as they flow through an integration flow.
+![img.png](../img/img11.png)
+
+```java
+class Config {
+    @Bean
+    @Transformer(inputChannel = "numberChannel",
+            outputChannel = "romanNumberChannel")
+    public GenericTransformer<Integer, String> romanNumTransformer() {
+        return RomanNumbers::toRoman;
+    }
+}
+```
+
+```java
+class Config {
+    @Bean
+    public IntegrationFlow transformerFlow() {
+        return IntegrationFlows
+                .transform(RomanNumbers::toRoman)
+                .get();
+    }
+}
+```
+
+### Routers
+
+![img.png](../img/img12.png)Routers direct messages to different channels, based on some criteria applied to the
+messages.
+
+```java
+class Config {
+    @Bean
+    @Router(inputChannel = "numberChannel")
+    public AbstractMessageRouter evenOddRouter() {
+        return new AbstractMessageRouter() {
+            @Override
+            protected Collection<MessageChannel>
+            determineTargetChannels(Message<?> message) {
+                Integer number = (Integer) message.getPayload();
+                if (number % 2 == 0) {
+                    return Collections.singleton(evenChannel());
+                }
+                return Collections.singleton(oddChannel());
+            }
+        };
+    }
+
+    @Bean
+    public MessageChannel evenChannel() {
+        return new DirectChannel();
+    }
+
+    @Bean
+    public MessageChannel oddChannel() {
+        return new DirectChannel();
+    }
+}
+```
+
+```java
+class Config {
+    @Bean
+    public IntegrationFlow numberRoutingFlow(AtomicInteger source) {
+        return IntegrationFlows
+                .<Integer, String>route(n -> n % 2 == 0 ? "EVEN" : "ODD", mapping -> mapping
+                        .subFlowMapping("EVEN", sf -> sf
+                                .<Integer, Integer>transform(n -> n * 10)
+                                .handle((i, h) -> {
+                                })
+                        )
+                        .subFlowMapping("ODD", sf -> sf
+                                .transform(RomanNumbers::toRoman)
+                                .handle((i, h) -> {
+                                })
+                        )
+                ).get();
+    }
+}
+```
+
+### Splitters
+
+Splitters break down messages into two or more separate messages that can be handled by separate
+subflows.![img.png](../img/img13.png)
+
+- Splitters are useful in many circumstances, but there are two essential use cases for which you might use a splitter:
+  A message payload contains a collection of items of the same type that you’d like to process as individual message
+  payloads. For example, a message carrying a list of products might be split into multiple messages with payloads of
+  one product each.
+- A message payload carries information that, although related, can be split into two or more messages of different
+  types. For example, a purchase order might carry delivery, billing, and line-item information. The delivery details
+  might be processed by one subflow, billing by another, and line items in yet another. In this use case, the splitter
+  is typically followed by a router that routes messages by payload type to ensure that the data gets handled by the
+  right subflow.
+
+```java
+public class OrderSplitter {
+    public Collection<Object> splitOrderIntoParts(PurchaseOrder po) {
+        ArrayList<Object> parts = new ArrayList<>();
+        parts.add(po.getBillingInfo());
+        parts.add(po.getLineItems());
+        return parts;
+    }
+}
+```
