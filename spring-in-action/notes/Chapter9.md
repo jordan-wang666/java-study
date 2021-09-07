@@ -391,3 +391,149 @@ public class OrderSplitter {
     }
 }
 ```
+
+```java
+class Config {
+    @Bean
+    @Splitter(inputChannel = "poChannel",
+            outputChannel = "splitOrderChannel")
+    public OrderSplitter orderSplitter() {
+        return new OrderSplitter();
+    }
+}
+```
+
+### Service activators
+
+Service activators receive messages from an input channel and send those messages to an implementation of
+MessageHandler, as shown in figure 9.7.
+
+Service activators invoke some service by way of a MessageHandler on receipt of a message.
+![img.png](../img/img14.png)
+
+```java
+class Config {
+    @Bean
+    @ServiceActivator(inputChannel = "someChannel")
+    public MessageHandler sysoutHandler() {
+        return message -> {
+            System.out.println("Message payload:  " + message.getPayload());
+        };
+    }
+
+    @Bean
+    @ServiceActivator(inputChannel = "orderChannel",
+            outputChannel = "completeOrder")
+    public GenericHandler<Order> orderHandler(
+            OrderRepository orderRepo) {
+        return (payload, headers) -> {
+            return orderRepo.save(payload);
+        };
+    }
+
+    public IntegrationFlow someFlow() {
+        return IntegrationFlows
+                .handle(msg -> {
+                    System.out.println("Message payload:  " + msg.getPayload());
+                }).get();
+
+    }
+}
+```
+
+### Gateways
+
+Gateways are the means by which an application can submit data into an integration flow and, optionally, receive a
+response that’s the result of the flow. Implemented by Spring Integration, gateways are realized as interfaces that the
+application can call to send messages to the integration flow (figure 9.8).
+
+![img.png](../img/img15.png)
+Figure 9.8 Service gateways are interfaces through which an application can submit messages to an integration flow.
+
+```java
+package com.example.demo;
+
+import org.springframework.integration.annotation.MessagingGateway;
+import org.springframework.stereotype.Component;
+
+@Component
+@MessagingGateway(defaultRequestChannel = "inChannel",
+        defaultReplyChannel = "outChannel")
+public interface UpperCaseGateway {
+    String uppercase(String in);
+}
+```
+
+```java
+class Config {
+    @Bean
+    public IntegrationFlow uppercaseFlow() {
+        return IntegrationFlows
+                .from("inChannel")
+                .<String, String>transform(s -> s.toUpperCase())
+                .channel("outChannel")
+                .get();
+    }
+}
+```
+
+### Channel adapters
+
+Channel adapters represent the entry and exit points of an integration flow. Data enters an integration flow by way of
+an inbound channel adapter and exits an integra- tion flow by way of an outbound channel adapter. This is illustrated in
+figure 9.9.
+![img.png](../img/img16.png)Figure 9.9 Channel adapters are the entry and exit points of an integration flow.
+
+```java
+class Config {
+    @Bean
+    @InboundChannelAdapter(
+            poller = @Poller(fixedRate = "1000"), channel = "numberChannel")
+    public MessageSource<Integer> numberSource(AtomicInteger source) {
+        return () -> {
+            return new GenericMessage<>(source.getAndIncrement());
+        };
+    }
+
+    @Bean
+    public IntegrationFlow someFlow(AtomicInteger integerSource) {
+        return IntegrationFlows
+                .from(integerSource, "getAndIncrement",
+                        c -> c.poller(Pollers.fixedRate(1000)))
+                .get();
+    }
+
+    @Bean
+    @InboundChannelAdapter(channel = "file-channel",
+            poller = @Poller(fixedDelay = "1000"))
+    public MessageSource<File> fileReadingMessageSource() {
+        FileReadingMessageSource sourceReader = new FileReadingMessageSource();
+        sourceReader.setDirectory(new File(INPUT_DIR));
+        sourceReader.setFilter(new SimplePatternFileListFilter(FILE_PATTERN));
+        return sourceReader;
+    }
+
+    @Bean
+    public IntegrationFlow fileReaderFlow() {
+        return IntegrationFlows
+                .from(Files.inboundAdapter(new File(INPUT_DIR))
+                        .patternFilter(FILE_PATTERN))
+                .get();
+    }
+}
+```
+
+### Endpoint modules
+
+![img.png](../img/img17.png)
+
+## Summary
+- Spring Integration enables the definition of flows through which data can be processed as it enters or leaves an application.
+- Integration flows can be defined in XML, Java, or using a succinct Java DSL con- figuration style.
+- Message gateways and channel adapters act as entry and exit points of an inte- gration flow.
+- Messages can be transformed, split, aggregated, routed, and processed by ser- vice activators in the course of a flow.
+- Message channels connect the components of an integration flow.Spring Integration enables the definition of flows through which data can be processed as it enters or leaves an application.
+- Integration flows can be defined in XML, Java, or using a succinct Java DSL con- figuration style.
+- Message gateways and channel adapters act as entry and exit points of an inte- gration flow.
+- Messages can be transformed, split, aggregated, routed, and processed by ser- vice activators in the course of a flow.
+- Message channels connect the components of an integration flow.
