@@ -555,3 +555,210 @@ class Test {
     }
 }
 ```
+
+#### MAPPING REACTIVE DATA
+
+![img.png](../img/img32.png)
+
+```java
+class Test {
+    @Test
+    public void map() {
+        Flux<Player> playerFlux = Flux
+                .just("Michael Jordan", "Scottie Pippen", "Steve Kerr")
+                .map(n -> {
+                    String[] split = n.split("\\s");
+                    return new Player(split[0], split[1]);
+                });
+        StepVerifier.create(playerFlux)
+                .expectNext(new Player("Michael", "Jordan"))
+                .expectNext(new Player("Scottie", "Pippen"))
+                .expectNext(new Player("Steve", "Kerr"))
+                .verifyComplete();
+    }
+}
+```
+
+What’s important to understand about `map()` is that the mapping is performed synchronously, as each item is published
+by the source `Flux`. If you want to perform the mapping asynchronously, you should consider the `flatMap()` operation.
+
+The `flatMap()` operation requires some thought and practice to acquire full proficiency. As shown in figure 10.17,
+instead of simply mapping one object to another, as in the case of `map()`, `flatMap()` maps each object to a new `Mono`
+or
+`Flux`. The results of the `Mono` or `Flux` are flattened into a new resulting `Flux`. When used along
+with `subscribeOn()`, flatMap() can unleash the asynchronous power of Reactor’s types.
+![img.png](../img/img33.png)
+
+```java
+class Test {
+    @Test
+    public void flatMap() {
+        Flux<Player> playerFlux = Flux
+                .just("Michael Jordan", "Scottie Pippen", "Steve Kerr")
+                .flatMap(n -> Mono.just(n)
+                        .map(p -> {
+                            String[] split = p.split("\\s");
+                            return new Player(split[0], split[1]);
+                        })
+                        .subscribeOn(Schedulers.parallel())
+                );
+        List<Player> playerList = Arrays.asList(
+                new Player("Michael", "Jordan"),
+                new Player("Scottie", "Pippen"),
+                new Player("Steve", "Kerr"));
+        StepVerifier.create(playerFlux)
+                .expectNextMatches(p -> playerList.contains(p))
+                .expectNextMatches(p -> playerList.contains(p))
+                .expectNextMatches(p -> playerList.contains(p))
+                .verifyComplete();
+    }
+}
+```
+
+|  Schedulers method | Description |
+|  ----  | ----  |
+| .immediate() | Executes the subscription in the current thread.|
+| .single() | Executes the subscription in a single, reusable thread. Reuses the same thread for all callers.|
+| newSingle() | Executes the subscription in a per-call dedicated thread. |
+| .elastic() | Executes the subscription in a worker pulled from an unbounded, elastic pool. New worker threads are created as needed, and idle workers are disposed of (by default, after 60 seconds).|
+| .parallel() | Executes the subscription in a worker pulled from a fixed-size pool, sized to the number of CPU cores. |
+
+The upside to using `flatMap()` and `subscribeOn()` is that you can increase the through- put of the stream by splitting
+the work across multiple parallel threads. But because the work is being done in parallel, with no guarantees on which
+will finish first, there’s no way to know the order of items emitted in the resulting Flux. Therefore, StepVerifier is
+only able to verify that each item emitted exists in the expected list of Player objects and that there will be three
+such items before the Flux completes.
+
+#### BUFFERING DATA ON A REACTIVE STREAM
+
+The buffer operation results in a `Flux` of lists of a given maximum size that are collected from the incoming `Flux`.
+![img.png](../img/img34.png)
+
+```java
+class Test {
+    @Test
+    public void buffer() {
+        Flux<String> fruitFlux = Flux.just(
+                "apple", "orange", "banana", "kiwi", "strawberry");
+        Flux<List<String>> bufferedFlux = fruitFlux.buffer(3);
+        StepVerifier
+                .create(bufferedFlux)
+                .expectNext(Arrays.asList("apple", "orange", "banana"))
+                .expectNext(Arrays.asList("kiwi", "strawberry"))
+                .verifyComplete();
+        Flux.just(
+                        "apple", "orange", "banana", "kiwi", "strawberry")
+                .buffer(3)
+                .flatMap(x ->
+                        Flux.fromIterable(x)
+                                .map(y -> y.toUpperCase())
+                                .subscribeOn(Schedulers.parallel())
+                                .log()
+                ).subscribe();
+    }
+}
+```
+
+The collect-list operation results in a `Mono` containing a list of all messages emitted by the incoming `Flux`.
+![img.png](../img/img35.png)
+
+```java
+class Test {
+    @Test
+    public void collectList() {
+        Flux<String> fruitFlux = Flux.just(
+                "apple", "orange", "banana", "kiwi", "strawberry");
+        Mono<List<String>> fruitListMono = fruitFlux.collectList();
+        StepVerifier
+                .create(fruitListMono)
+                .expectNext(Arrays.asList(
+                        "apple", "orange", "banana", "kiwi", "strawberry"))
+                .verifyComplete();
+    }
+}
+```
+
+The collect-map operation results in a `Mono` containing a Map of messages emitted by the incoming `Flux`, where the key
+is derived from some characteristic of the incoming messages.
+
+![img.png](../img/img36.png)
+
+```java
+class Test {
+    @Test
+    public void collectMap() {
+        Flux<String> animalFlux = Flux.just(
+                "aardvark", "elephant", "koala", "eagle", "kangaroo");
+        Mono<Map<Character, String>> animalMapMono =
+                animalFlux.collectMap(a -> a.charAt(0));
+        StepVerifier
+                .create(animalMapMono)
+                .expectNextMatches(map -> {
+                    return
+                            map.size() == 3 &&
+                                    map.get('a').equals("aardvark") &&
+                                    map.get('e').equals("eagle") &&
+                                    map.get('k').equals("kangaroo");
+                })
+                .verifyComplete();
+    }
+}
+```
+
+### Performing logic operations on reactive types
+
+Sometimes you just need to know if the entries published by a Mono or Flux match some criteria. The `all()` and `any()`
+operations perform such logic. Figures 10.21 and 10.22 illustrate how `all()` and `any()` work.
+
+A flux can be tested to ensure that all messages meet some condition with the all operation.
+![img.png](../img/img37.png)
+
+A flux can be tested to ensure that at least one message meets some condition with the any operation.
+![img_1.png](../img/img38.png)
+
+```java
+class Test {
+    @Test
+    public void all() {
+        Flux<String> animalFlux = Flux.just(
+                "aardvark", "elephant", "koala", "eagle", "kangaroo");
+
+        Mono<Boolean> hasAMono = animalFlux.all(a -> a.contains("a"));
+        StepVerifier.create(hasAMono)
+                .expectNext(true)
+                .verifyComplete();
+
+        Mono<Boolean> hasKMono = animalFlux.all(a -> a.contains("k"));
+        StepVerifier.create(hasKMono)
+                .expectNext(false)
+                .verifyComplete();
+    }
+
+    @Test
+    public void any() {
+        Flux<String> animalFlux = Flux.just(
+                "aardvark", "elephant", "koala", "eagle", "kangaroo");
+
+        Mono<Boolean> hasAMono = animalFlux.any(a -> a.contains("a"));
+
+        StepVerifier.create(hasAMono)
+                .expectNext(true)
+                .verifyComplete();
+
+        Mono<Boolean> hasZMono = animalFlux.any(a -> a.contains("z"));
+        StepVerifier.create(hasZMono)
+                .expectNext(false)
+                .verifyComplete();
+    }
+}
+```
+
+### Summary
+
+- Reactive programming involves creating pipelines through which data flows.
+- The Reactive Streams specification defines four types: Publisher, Subscriber, Subscription, and Transformer (which is
+  a combination of Publisher and Subscriber).
+- Project Reactor implements Reactive Streams and abstracts stream definitions into two primary types, Flux and Mono,
+  each of which offers several hundred operations.
+- Spring 5 leverages Reactor to create reactive controllers, repositories, REST clients, and other reactive framework
+  support.
