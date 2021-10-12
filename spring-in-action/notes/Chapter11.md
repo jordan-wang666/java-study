@@ -194,3 +194,443 @@ public class RouterFunctionConfig {
     }
 }
 ```
+
+### Testing reactive controllers
+
+#### Testing GET requests
+
+One thing we’d like to assert about the `recentTacos()` method is that if an HTTP GET request is issued for the path
+`/design/recent`, then the response will contain a JSON payload with no more than 12 tacos. The test class in the next
+listing is a good start.
+
+```java
+package tacos;
+
+import static org.mockito.Mockito.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
+import tacos.Ingredient.Type;
+import tacos.data.TacoRepository;
+import tacos.web.api.DesignTacoController;
+
+public class DesignTacoControllerTest {
+    @Test
+    public void shouldReturnRecentTacos() {
+        Taco[] tacos = {
+                testTaco(1L), testTaco(2L),
+                testTaco(3L), testTaco(4L),
+                testTaco(5L), testTaco(6L),
+                testTaco(7L), testTaco(8L),
+                testTaco(9L), testTaco(10L),
+                testTaco(11L), testTaco(12L),
+                testTaco(13L), testTaco(14L),
+                testTaco(15L), testTaco(16L)};
+        Flux<Taco> tacoFlux = Flux.just(tacos);
+
+
+        TacoRepository tacoRepo = Mockito.mock(TacoRepository.class);
+        when(tacoRepo.findAll()).thenReturn(tacoFlux);
+        WebTestClient testClient = WebTestClient.bindToController(new DesignTacoController(tacoRepo))
+                .build();
+        testClient.get().uri("/design/recent")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$").isArray()
+                .jsonPath("$").isNotEmpty()
+                .jsonPath("$[0].id").isEqualTo(tacos[0].getId().toString())
+                .jsonPath("$[0].name").isEqualTo("Taco 1").jsonPath("$[1].id")
+                .isEqualTo(tacos[1].getId().toString()).jsonPath("$[1].name")
+                .isEqualTo("Taco 2").jsonPath("$[11].id")
+                .isEqualTo(tacos[11].getId().toString())
+                .jsonPath("$[11].name").isEqualTo("Taco 12").jsonPath("$[12]").doesNotExist()
+                .jsonPath("$[12]").doesNotExist();
+
+        ClassPathResource recentsResource =
+                new ClassPathResource("/tacos/recent-tacos.json");
+        String recentsJson = StreamUtils.copyToString(
+                recentsResource.getInputStream(), Charset.defaultCharset());
+        testClient.get().uri("/design/recent")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .json(recentsJson);
+        testClient.get().uri("/design/recent")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(Taco.class)
+                .contains(Arrays.copyOf(tacos, 12));
+    }
+}
+```
+
+#### Testing POST requests
+
+|  HTTP Method  | WebTestClient method  |
+|  ----  | ----  |
+| GET | .get() |
+| POST | .post() | 
+| PUT | .put() |
+| PATCH | .patch() | 
+| DELETE | .delete() |
+| HEAD | .head() |
+
+```java
+class Test {
+    @Test
+    public void shouldSaveATaco() {
+        TacoRepository tacoRepo = Mockito.mock(
+                TacoRepository.class);
+        Mono<Taco> unsavedTacoMono = Mono.just(testTaco(null));
+        Taco savedTaco = testTaco(null);
+        savedTaco.setId(1L);
+        Mono<Taco> savedTacoMono = Mono.just(savedTaco);
+        when(tacoRepo.save(any())).thenReturn(savedTacoMono);
+        WebTestClient testClient = WebTestClient.bindToController(
+                new DesignTacoController(tacoRepo)).build();
+        testClient.post().uri("/design")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(unsavedTacoMono, Taco.class)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody(Taco.class)
+                .isEqualTo(savedTaco);
+    }
+
+}
+```
+
+#### Testing with a live server
+
+The tests you’ve written so far have relied on a mock implementation of the Spring WebFlux framework so that a real
+server wouldn’t be necessary. But you may need to test a WebFlux controller in the context of a server like Netty or
+Tomcat and maybe with a repository or other dependencies. That is to say, you may want to write an integration test.
+
+To write a `WebTestClient` integration test, you start by annotating the test class with `@RunWith`
+and `@SpringBootTest` like any other Spring Boot integration test:
+
+```java
+
+@RunWith(SpringRunner.class)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+public class DesignTacoControllerWebTest {
+    @Autowired
+    private WebTestClient testClient;
+}
+```
+
+```java
+class Test {
+    @Test
+    public void shouldReturnRecentTacos() throws IOException {
+        testClient.get().uri("/design/recent")
+                .accept(MediaType.APPLICATION_JSON).exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$[?(@.id == 'TACO1')].name")
+                .isEqualTo("Carnivore")
+                .jsonPath("$[?(@.id == 'TACO2')].name")
+                .isEqualTo("Bovine Bounty")
+                .jsonPath("$[?(@.id == 'TACO3')].name")
+                .isEqualTo("Veg-Out");
+    }
+}
+```
+
+You’ve no doubt noticed that this new version of `shouldReturnRecentTacos()` has much less code. There’s no longer any
+need to create a `WebTestClient` because you’ll be making use of the autowired instance. And there’s no need to mock
+`TacoRepository` because Spring will create an instance of `DesignTacoController` and inject it with a real
+`TacoRepository`. In this new version of the test method, you use JSONPath expressions to verify values served from the
+database.
+
+### Consuming REST APIs reactively
+
+It would be nice if there was a way to use `RestTemplate` natively with reactive types. Fear not. Spring 5 offers
+`WebClient` as a reactive alternative to `RestTemplate`. `WebClient` lets you both send and receive reactive types when
+making requests to external APIs.
+
+Using `WebClient` is quite different from using `RestTemplate`. Rather than have several methods to handle different
+kinds of requests, `WebClient` has a fluent builder-style interface that lets you describe and send requests. The
+general usage pattern for working with WebClient is
+
+- Create an instance of WebClient (or inject a WebClient bean)
+- Specify the HTTP method of the request to send
+- Specify the URI and any headers that should be in the request
+- Submit the request
+- Consume the response
+
+#### GETting resources
+
+```java
+class Test {
+    Mono<Ingredient> ingredient = WebClient.create()
+            .get().uri("http://localhost:8080/ingredients/{id}", ingredientId)
+            .retrieve()
+            .bodyToMono(Ingredient.class);
+}
+```
+
+```java
+class Test {
+    Flux<Ingredient> ingredients = WebClient.create()
+            .get()
+            .uri("http://localhost:8080/ingredients")
+            .retrieve()
+            .bodyToFlux(Ingredient.class);
+}
+```
+
+##### MAKING REQUESTS WITH A BASE URI
+
+```java
+class Config {
+    @Bean
+    public WebClient webClient() {
+        return WebClient.create("http://localhost:8080");
+    }
+}
+```
+
+```java
+class Client {
+    @Autowired
+    WebClient webClient;
+
+    public Mono<Ingredient> getIngredientById(String ingredientId) {
+        Mono<Ingredient> ingredient = webClient
+                .get()
+                .uri("/ingredients/{id}", ingredientId)
+                .retrieve()
+                .bodyToMono(Ingredient.class);
+    }
+}
+```
+
+##### TIMING OUT ON LONG-RUNNING REQUESTS
+
+To avoid having your client requests held up by a sluggish network or service, you can use the `timeout()` method from
+Flux or Mono to put a limit on how long you’ll wait for data to be published. As an example, consider how you might use
+`timeout()` when fetching ingredient data:
+
+```java
+class Demo {
+    Flux<Ingredient> ingredients = WebClient.create()
+            .get()
+            .uri("http://localhost:8080/ingredients")
+            .retrieve()
+            .bodyToFlux(Ingredient.class);
+  
+        ingredients
+                .timeout(Duration.ofSeconds(1))
+                .
+
+    subscribe();
+}
+```
+
+#### Sending resources
+
+```java
+class Demo {
+    Mono<Ingredient> ingredientMono;
+    Mono<Ingredient> result = webClient
+            .post()
+            .uri("/ingredients")
+            .body(ingredientMono, Ingredient.class)
+            .retrieve()
+            .bodyToMono(Ingredient.class);
+}
+```
+
+If you don’t have a `Mono` or `Flux` to send, but instead have the raw domain object on hand, you can use `syncBody()`.
+For example, suppose that instead of a `Mono<Ingredient>`, you have an Ingredient that you want to send in the request
+body:
+
+```java
+class Demo {
+    Ingedient ingredient;
+    Mono<Ingredient> result = webClient
+            .post()
+            .uri("/ingredients")
+            .syncBody(ingredient)
+            .retrieve()
+            .bodyToMono(Ingredient.class);
+}
+```
+
+#### Deleting resources
+
+```java
+class Demo {
+    Mono<Void> result = webClient
+            .delete()
+            .uri("/ingredients/{id}", ingredientId)
+            .retrieve()
+            .bodyToMono(Void.class)
+            .subscribe();
+}
+```
+
+#### Handling errors
+
+```java
+class Demo {
+    Mono<Ingredient> ingredientMono = webClient
+            .get()
+            .uri("http://localhost:8080/ingredients/{id}", ingredientId)
+            .retrieve()
+            .bodyToMono(Ingredient.class);
+    
+    ingredientMono.subscribe(
+    ingredient ->
+
+    {
+    },
+    error->
+
+    {
+    });
+
+}
+```
+
+```java
+class Demo {
+    Mono<Ingredient> ingredientMono = webClient
+            .get()
+            .uri("http://localhost:8080/ingredients/{id}", ingredientId)
+            .retrieve()
+            .onStatus(HttpStatus::is4xxClientError,
+                    response -> Mono.just(new UnknownIngredientException()))
+            .bodyToMono(Ingredient.class);
+}
+```
+
+#### Exchanging requests
+
+Up to this point, you’ve used the `retrieve()` method to signify sending a request when working with `WebClient`. In
+those cases, the `retrieve()` method returned an object of type `ResponseSpec`, through which you were able to handle
+the response with calls to methods such as `onStatus()`, `bodyToFlux()`, and `bodyToMono()`. Working with `ResponseSpec`
+is fine for simple cases, but it’s limited in a few ways. If you need access to the response’s headers or cookie values,
+for example, then `ResponseSpec` isn’t going to work for you.
+
+When `ResponseSpec` comes up short, you can try calling `exchange()` instead of `retrieve()`. The `exchange()` method
+returns a
+`Mono` of type `ClientResponse`, on which you can apply reactive operations to inspect and use data from the entire
+response, including the payload, headers, and cookies.
+
+```java
+class Demo {
+    Mono<Ingredient> ingredientMono = webClient
+            .get()
+            .uri("http://localhost:8080/ingredients/{id}", ingredientId)
+            .exchange()
+            .flatMap(cr -> cr.bodyToMono(Ingredient.class));
+}
+```
+
+Now let’s see what makes `exchange()` different. Let’s suppose that the response from the request might include a header
+named `X_UNAVAILABLE` with a value of true to indicate that (for some reason) the ingredient in question is unavailable.
+And for the sake of discussion, suppose that if that header exists, you want the resulting Mono to be empty—to not
+return anything. You can achieve this scenario by adding another call to `flatMap()` such that the entire `WebClient`
+call looks like this:
+
+```java
+class Demo {
+    Mono<Ingredient> ingredientMono = webClient
+            .get()
+            .uri("http://localhost:8080/ingredients/{id}", ingredientId)
+            .exchange()
+            .flatMap(cr -> {
+                if (cr.headers().header("X_UNAVAILABLE").contains("true")) {
+                    return Mono.empty();
+                }
+                return Mono.just(cr);
+            })
+            .flatMap(cr -> cr.bodyToMono(Ingredient.class));
+}
+```
+
+### Securing reactive web APIs
+
+What’s even more remarkable, though, is that the configuration model for reactive Spring Security isn’t much different
+from what you saw in chapter 4. In fact, unlike Spring WebFlux, which has a separate dependency from Spring MVC, Spring
+Security comes as the same Spring Boot security starter, regardless of whether you intend to use it to secure a Spring
+MVC web application or one written with Spring WebFlux. As a reminder, here’s what the security starter looks like:
+
+```xml
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+```
+
+#### Configuring reactive web security
+
+```java
+class Config {
+    @Configuration
+    @EnableWebFluxSecurity
+    public class SecurityConfig {
+        @Bean
+        public SecurityWebFilterChain securityWebFilterChain(
+                ServerHttpSecurity http) {
+            return http
+                    .authorizeExchange()
+                    .pathMatchers("/design", "/orders").hasAuthority("USER")
+                    .anyExchange().permitAll()
+                    .and()
+                    .build();
+        }
+    }
+}
+```
+
+#### Configuring a reactive user details service
+
+```java
+class Service {
+    @Autowired
+    UserRepository userRepo;
+
+    @Override
+    protected void
+    configure(AuthenticationManagerBuilder auth)
+            throws Exception {
+        auth
+                .userDetailsService(new UserDetailsService() {
+                    @Override
+                    public UserDetails loadUserByUsername(String username)
+                            throws UsernameNotFoundException {
+                        User user = userRepo.findByUsername(username);
+                        if (user == null) {
+                            throw new UsernameNotFoundException(
+                                    username + "not found");
+                        }
+                        return user.toUserDetails();
+                    }
+                });
+    }
+}
+```
+
+### Summary
+
+- Spring WebFlux offers a reactive web framework whose programming model mirrors that of Spring MVC, even sharing many
+  of the same annotations.
+- Spring 5 also offers a functional programming model as an alternative to Spring WebFlux.
+- Reactive controllers can be tested with WebTestClient.
+- On the client-side, Spring 5 offers WebClient, a reactive analog to Spring’s RestTemplate.
+- Although WebFlux has some significant implications for the underlying mecha- nisms for securing a web application,
+  Spring Security 5 supports reactive secu- rity with a programming model that isn’t dramatically different from non-
+  reactive Spring MVC applications.
