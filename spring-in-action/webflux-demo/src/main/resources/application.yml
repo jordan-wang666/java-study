@@ -1,0 +1,9 @@
+spring:
+  data:
+    cassandra:
+      contact-points: localhost
+      port: 9042
+      username: cassandra
+      password: cassandra
+      keyspace-name: tacocloud
+      local-datacenter: DC1

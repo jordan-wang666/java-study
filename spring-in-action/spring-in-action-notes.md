@@ -27,3 +27,5 @@
 [10.Introducing Reactor](notes/Chapter10.md)
 
 [11.Developing reactive APIs](notes/Chapter11.md)
+
+[12.Persisting data reactively](notes/Chapter12.md)
