@@ -25,5 +25,9 @@ public class Taco {
     private Date createdAt = new Date();
 
     @Column("ingredients")
-    private List<Ingredient> ingredients;
+    private List<IngredientUDT> ingredients;
+
+    public void addIngredient(Ingredient ingredient) {
+        this.ingredients.add(new IngredientUDT(ingredient.getName(), ingredient.getType()));
+    }
 }

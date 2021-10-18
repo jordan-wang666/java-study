@@ -6,4 +6,5 @@ spring:
       username: cassandra
       password: cassandra
       keyspace-name: tacocloud
-      local-datacenter: DC1
+      schema-action: CREATE_IF_NOT_EXISTS
+      local-datacenter: datacenter1

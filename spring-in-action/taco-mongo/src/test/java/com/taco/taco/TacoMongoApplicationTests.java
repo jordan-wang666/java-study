@@ -1,34 +1,24 @@
-package com.taco.webflux.controller;
+package com.taco.taco;
 
-import com.taco.cloud.entity.Ingredient;
-import com.taco.webflux.dao.IngredientRepository;
-import com.taco.webflux.dao.OrderRepository;
-import com.taco.webflux.dao.TacoRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.taco.taco.bean.Ingredient;
+import com.taco.taco.dao.IngredientRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
 import java.util.Arrays;
 import java.util.List;
 
-@RestController
-@RequestMapping("/design")
-public class DesignTacoController {
+@SpringBootTest
+class TacoMongoApplicationTests {
 
     @Resource
     private IngredientRepository ingredientRepository;
 
-    @Resource
-    private OrderRepository orderRepository;
+    @Test
+    void contextLoads() {
 
-    @Resource
-    private TacoRepository tacoRepository;
-
-
-    @GetMapping("/add")
-    public Flux<Ingredient> addIngredient() {
         List<Ingredient> ingredients = Arrays.asList(
                 new Ingredient("FLTO", "Flour Tortilla", Ingredient.Type.WRAP),
                 new Ingredient("COTO", "Corn Tortilla", Ingredient.Type.WRAP),
@@ -42,11 +32,11 @@ public class DesignTacoController {
                 new Ingredient("SRCR", "Sour Cream", Ingredient.Type.SAUCE)
         );
         Flux<Ingredient> flux = Flux.fromIterable(ingredients);
-        return ingredientRepository.saveAll(flux);
+        Flux<Ingredient> ingredientFlux = ingredientRepository.saveAll(flux);
+
+        ingredientFlux.subscribe(ingredient -> {
+            System.out.println("ingredient = " + ingredient);
+        });
     }
 
-    @GetMapping
-    public Flux<Ingredient> get() {
-        return ingredientRepository.findAll();
-    }
 }

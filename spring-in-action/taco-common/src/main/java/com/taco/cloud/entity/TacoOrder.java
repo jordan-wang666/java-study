@@ -1,26 +1,31 @@
 package com.taco.cloud.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.springframework.data.cassandra.core.mapping.Column;
+import org.springframework.data.cassandra.core.mapping.PrimaryKey;
+import org.springframework.data.cassandra.core.mapping.Table;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Table("tacoorders")
 public class TacoOrder implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private Long id;
+    @PrimaryKey
+    private UUID id = Uuids.timeBased();
+    private Date placedAt = new Date();
+
+    @Column("user")
+    private UserUDT user;
 
     private String deliveryName;
 
@@ -38,11 +43,14 @@ public class TacoOrder implements Serializable {
 
     private String ccCVV;
 
-    private Date placedAt = new Date();
-
-    private List<Taco> tacos = new ArrayList<>();
+    @Column("tacos")
+    private List<TacoUDT> tacos = new ArrayList<>();
 
     public void addTaco(Taco taco) {
-        this.tacos.add(taco);
+        this.addTaco(new TacoUDT(taco.getName(), taco.getIngredients()));
+    }
+
+    public void addTaco(TacoUDT tacoUDT) {
+        this.tacos.add(tacoUDT);
     }
 }
