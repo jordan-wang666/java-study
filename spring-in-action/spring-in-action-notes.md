@@ -29,3 +29,7 @@
 [11.Developing reactive APIs](notes/Chapter11.md)
 
 [12.Persisting data reactively](notes/Chapter12.md)
+
+### Part4 Cloud-native Spring
+
+[13.Discovering services](notes/Chapter13.md)
