@@ -33,3 +33,5 @@
 ### Part4 Cloud-native Spring
 
 [13.Discovering services](notes/Chapter13.md)
+
+[14.Managing configuration](notes/Chapter14.md)
