@@ -35,3 +35,5 @@
 [13.Discovering services](notes/Chapter13.md)
 
 [14.Managing configuration](notes/Chapter14.md)
+
+[15.Handling failure and latency](notes/Chapter15.md)
