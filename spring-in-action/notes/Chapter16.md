@@ -66,6 +66,21 @@ management:
         include: '*'
 ```
 
+### Summary
+
+- Spring Boot Actuator provides several endpoints, both as HTTP and as JMX MBeans, that let you peek into the inner
+  workings of a Spring Boot application.
+- Most Actuator endpoints are disabled by default, but can be selectively exposed by setting
+  management.endpoints.web.exposure.include and management .endpoints.web.exposure.exclude.
+- Some endpoints, such as the /loggers and /env endpoints, allow for write operations to change a running
+  application’s configuration on the fly.
+- Details regarding an application’s build and Git commit can be exposed in the /info endpoint.
+- An application’s health can be influenced by a custom health indicator, track- ing the health of an externally
+  integrated application.
+- Custom application metrics can be registered through Micrometer, which affords Spring Boot applications instant
+  integration with several popular metrics engines such as Datadog, New Relic, and Prometheus.
+- Actuator web endpoints can be secured using Spring Security, much like any other endpoint in a Spring web application.
+
 
 
 
