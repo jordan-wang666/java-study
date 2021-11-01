@@ -37,3 +37,8 @@
 [14.Managing configuration](notes/Chapter14.md)
 
 [15.Handling failure and latency](notes/Chapter15.md)
+
+### Part5 Deployed Spring
+
+[16.Handling failure and latency](notes/Chapter16.md)
+
