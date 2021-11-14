@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: server-client
+  boot:
+    admin:
+      client:
+        url: http://localhost:9090
