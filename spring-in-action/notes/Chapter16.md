@@ -1,4 +1,4 @@
-# Working with Spring Boot Actuator
+# 16.Working with Spring Boot Actuator
 
 > **This chapter covers**
 > - Enabling Actuator in Spring Boot projects - Exploring Actuator endpoints

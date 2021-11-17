@@ -1,4 +1,4 @@
-# Managing configuration
+# 14.Managing configuration
 
 > **This chapter covers**
 > - Running Spring Cloud Config Server

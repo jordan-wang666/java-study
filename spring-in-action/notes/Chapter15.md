@@ -1,4 +1,4 @@
-# Handling failure and latency
+# 15.Handling failure and latency
 
 > **This chapter covers**
 > - Introducing the circuit breaker pattern

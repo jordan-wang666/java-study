@@ -42,3 +42,9 @@
 
 [16.Handling failure and latency](notes/Chapter16.md)
 
+[17.Administering Spring](notes/Chapter17.md)
+
+[18.Monitoring Spring with JMX](notes/Chapter18.md)
+
+[19.Deploying Spring](notes/Chapter19.md)
+
