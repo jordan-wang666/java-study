@@ -9,14 +9,6 @@
 
 ### Enabling Spring Data Cassandra
 
-```xml
-
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-cassandra</artifactId>
-</dependency>
-```
-
 By doing nothing more than adding the security starter to the project build, you get the following security features:
 
 - All HTTP request paths require authentication.
@@ -295,15 +287,6 @@ Configuration methods to define how a path is to be secured
 > - Customizing the login page
 > - Securing against CSRF attacks
 > - Knowing your user
-
-### Enabling Spring Data Cassandra
-
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-cassandra</artifactId>
-</dependency>
-```
 
 By doing nothing more than adding the security starter to the project build, you get the following security features:
 
