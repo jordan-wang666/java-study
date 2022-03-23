@@ -1,3 +1,5 @@
+server:
+  port: 8081
 spring:
   application:
     name: organizationservice # Logical name of the service that will be registered with Eureka
