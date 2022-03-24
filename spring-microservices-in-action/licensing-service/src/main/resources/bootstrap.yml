@@ -11,3 +11,11 @@ management:
     web:
       exposure:
         include: env
+eureka:
+  instance:
+    prefer-ip-address: true # Register the IP of the service rather than the server name.
+  client:
+    register-with-eureka: true # Register the service with Eureka.
+    fetch-registry: true # Pull down a local copy of the registry.
+    service-url:
+      defaultZone: http://localhost:8761/eureka/ # Location of the Eureka Service
