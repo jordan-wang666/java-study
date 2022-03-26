@@ -1,3 +1,5 @@
+server:
+  port: 8082
 spring:
   application:
     name: licensingservice
@@ -18,4 +20,4 @@ eureka:
     register-with-eureka: true # Register the service with Eureka.
     fetch-registry: true # Pull down a local copy of the registry.
     service-url:
-      defaultZone: http://localhost:8761/eureka/ # Location of the Eureka Service
+     defaultZone: http://localhost:8761/eureka/ # Location of the Eureka Service

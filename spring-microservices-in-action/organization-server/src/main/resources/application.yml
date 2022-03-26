@@ -3,12 +3,11 @@ server:
 spring:
   application:
     name: organizationservice # Logical name of the service that will be registered with Eureka
-  profiles:
-    active:
-      default
-  cloud:
-    config:
-      enabled: true
+  datasource:
+    driver-class-name: 'org.postgresql.Driver'
+    url: 'jdbc:postgresql://localhost:5432/eagle_eye_local'
+    username: postgres
+    password: '123456'
 eureka:
   instance:
     prefer-ip-address: true # Register the IP of the service rather than the server name.

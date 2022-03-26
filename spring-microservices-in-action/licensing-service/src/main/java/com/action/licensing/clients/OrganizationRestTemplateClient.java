@@ -2,7 +2,6 @@ package com.action.licensing.clients;
 
 import com.action.licensing.model.Organization;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -17,7 +16,7 @@ public class OrganizationRestTemplateClient {
     public Organization getOrganization(String organizationId) {
         ResponseEntity<Organization> restExchange =
                 restTemplate.exchange(
-                        "http://organizationservice/v1/organizations/{organizationId}",
+                        "http://ORGANIZATIONSERVICE/v1/organizations/{organizationId}",
                         HttpMethod.GET,
                         null, Organization.class, organizationId);
 
