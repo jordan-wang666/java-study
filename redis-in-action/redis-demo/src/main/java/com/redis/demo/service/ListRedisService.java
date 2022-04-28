@@ -87,12 +87,6 @@ public class ListRedisService {
         redisTemplate.opsForList().trim(KEY, start, end);
     }
 
-//    RPOPLPUSH
-//            BRPOPLPUSH
-//
-//    RPOPLPUSH source-key dest-key—Pops the rightmost item from the source and LPUSHes the item to the destination, also returning the item to the user
-//    BRPOPLPUSH source-key dest-key timeout—Pops the rightmost item from the source and LPUSHes the item to the destination, also returning the item to the user, and waiting up to the timeout if the source is empty
-
     /**
      * Command `BLPOP`
      * BLPOP key-name [key-name ...] timeout—Pops the leftmost item from the first non-empty LIST, or waits the timeout in seconds for an item
