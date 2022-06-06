@@ -7,7 +7,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import javax.annotation.Resource;
 
 @SpringBootTest
-public class TestPack {
+class TestPack {
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
